@@ -4,6 +4,7 @@ April 30, 2021
 Parser to file YAML files
 '''
 import sys
+import logging
 import ruamel.yaml 
 from ruamel.yaml.scanner import ScannerError
 import json
@@ -19,6 +20,7 @@ import os
 base_path = r" "
 
 key_jsonpath_mapping = {}
+logger = logging.getLogger(__name__)
 
     
 def checkIfWeirdYAML(yaml_script):
@@ -28,6 +30,7 @@ def checkIfWeirdYAML(yaml_script):
     val = False
     if ( any(x_ in yaml_script for x_ in constants.WEIRD_PATHS  ) ):
         val = True 
+    logger.info("event=yaml_path_filtered file=%r filtered=%s", yaml_script, val)
     return val 
 
 
@@ -105,6 +108,7 @@ def checkIfValidK8SYaml(path2yaml):
     else: 
         if ( constants.API_V_KEYNAME in temp_ ) and (constants.KIND_KEY_NAME in temp_):
             val2ret = True 
+    logger.info("event=kubernetes_yaml_checked file=%r matched=%s", path2yaml, val2ret)
     return val2ret
 
 
@@ -130,12 +134,14 @@ def checkIfValidHelm(path_script):
     val_ret = False 
     if ( (constants.HELM_KW in path_script) or (constants.CHART_KW in path_script) or (constants.SERVICE_KW in path_script) or (constants.INGRESS_KW in path_script)  or(constants.HELM_DEPLOY_KW in path_script) or (constants.CONFIG_KW in path_script) )  and (constants.VALUE_KW in path_script) :
         val_ret = True 
+    logger.info("event=helm_path_checked file=%r matched=%s", path_script, val_ret)
     return val_ret
 
 def readYAMLAsStr( path_script ):
     yaml_as_str = constants.YAML_SKIPPING_TEXT
     with open( path_script , constants.FILE_READ_FLAG) as file_:
         yaml_as_str = file_.read()
+    logger.info("event=yaml_text_read file=%r characters=%d", os.fspath(path_script), len(yaml_as_str))
     return yaml_as_str
 
 # This function checks whether our parser throws an exception for reading the YAML file. 
@@ -146,15 +152,14 @@ def checkParseError( path_script ):
         try:
             for dictionary in yaml.load_all(yml):
                 pass
-        except ruamel.yaml.parser.ParserError as parse_error:
+        except (ruamel.yaml.error.YAMLError, UnicodeDecodeError) as error:
             flag = False
-            print(constants.YAML_SKIPPING_TEXT)           
-        except ruamel.yaml.error.YAMLError as exc:
-            flag = False
-            print( constants.YAML_SKIPPING_TEXT  )    
-        except UnicodeDecodeError as err_: 
-            flag = False
-            print( constants.YAML_SKIPPING_TEXT  )
+            logger.warning(
+                "event=yaml_parse_failed file=%r error_type=%s",
+                os.fspath(path_script),
+                type(error).__name__,
+            )
+            print(constants.YAML_SKIPPING_TEXT)
     return flag
 
 def loadMultiYAML( script_ ):
@@ -196,6 +201,12 @@ def loadMultiYAML( script_ ):
             #     print(type(d))
                 
         #print(dicts2ret)
+    logger.info(
+        "event=yaml_load_finished file=%r documents=%d parse_ok=%s",
+        os.fspath(script_),
+        len(dicts2ret),
+        no_exception,
+    )
     return dicts2ret
 
 
@@ -221,6 +232,7 @@ def count_initial_comment_line (filepath):
                 break
         if comment_found is False:
             initial_comment_line = 0
+    logger.info("event=yaml_header_counted file=%r lines=%d", os.fspath(filepath), initial_comment_line)
     return initial_comment_line
 
 
@@ -410,6 +422,7 @@ def getSingleDict4MultiDocs( lis_dic ):
     # yaml.dump(dict2ret, sys.stdout)
     # print("-----")
         
+    logger.info("event=yaml_documents_combined keys=%d", len(dict2ret))
     return dict2ret
 
 

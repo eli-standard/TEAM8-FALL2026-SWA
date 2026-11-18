@@ -3,10 +3,14 @@ Akond Rahman
 May 04, 2021 
 Construct taint graphs based on weakness types 
 '''
+import logging
+
 import constants
 import parser 
 import os 
 from itertools import combinations
+
+logger = logging.getLogger(__name__)
 
 def getYAMLFiles(path_to_dir):
     valid_  = [] 
@@ -16,6 +20,7 @@ def getYAMLFiles(path_to_dir):
            if(os.path.exists(full_p_file)):
              if (full_p_file.endswith( constants.YAML_EXTENSION  ) or full_p_file.endswith( constants.YML_EXTENSION  )  ):
                valid_.append(full_p_file)
+    logger.info("event=yaml_files_discovered directory=%r count=%d", os.fspath(path_to_dir), len(valid_))
     return valid_ 
 
 def constructHelmString(hiera_tuple): 
@@ -113,6 +118,7 @@ def getSHFiles(path_to_dir):
            if(os.path.exists(full_p_file)):
              if (full_p_file.endswith( constants.SH_EXTENSION  )  ):
                valid_.append(full_p_file)
+    logger.info("event=shell_files_discovered directory=%r count=%d", os.fspath(path_to_dir), len(valid_))
     return valid_ 
 
 
